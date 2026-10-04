@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026 Alpine 10K Race — Official Runner Results Lookup</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 680px;
+      margin: 40px auto;
+      padding: 0 20px;
+      color: #202124;
+      line-height: 1.5;
+    }
+    .search-card {
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      padding: 24px;
+      background: #f8f9fa;
+      margin-bottom: 24px;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .form-row {
+      display: flex;
+      gap: 10px;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 10px 12px;
+      font-size: 16px;
+      border: 1px solid #dadce0;
+      border-radius: 6px;
+    }
+    button[type="submit"] {
+      padding: 10px 20px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #ffffff;
+      background-color: #1a73e8;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button[type="submit"]:hover {
+      background-color: #1557b0;
+    }
+    #results-container {
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      padding: 20px;
+      display: none;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+    th, td {
+      text-align: left;
+      padding: 10px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    th {
+      background-color: #f1f3f4;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>2026 Alpine 10K Race — Runner Lookup</h1>
+  <p>Enter a runner's name or bib number below and submit the form to view their official finish time, overall placement, and split times.</p>
+
+  <div class="search-card">
+    <form id="runner-search-form" aria-label="Runner Results Search Form">
+      <label for="runner-query">Runner Name or Bib Number</label>
+      <div class="form-row">
+        <input
+          type="text"
+          id="runner-query"
+          name="runner_query"
+          placeholder="Enter runner name (e.g., Mirae Seo) or bib number"
+          aria-label="Runner Name or Bib Number"
+          required
+        />
+        <button type="submit" id="search-submit-btn" aria-label="Search Results">
+          Search Results
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div id="results-container" aria-live="polite">
+    <h2 id="results-heading">Search Results</h2>
+    <div id="results-body"></div>
+  </div>
+
+  <script>
+    const ENCODED_DATA = "W3sibmFtZSI6Ik1pcmFlIFNlbyIsImJpYiI6IjEwNDIiLCJmaW5pc2hUaW1lIjoiNDE6MTgiLCJwbGFjZW1lbnQiOiIxNHRoIE92ZXJhbGwgKDJuZCBBZ2UgR3JvdXApIiwic3BsaXQ1ayI6IjIwOjM1Iiwic3BsaXQxMGsiOiI0MToxOCJ9LHsibmFtZSI6IkFsZXggUml2ZXJhIiwiYmliIjoiMTA4OCIsImZpbmlzaFRpbWUiOiIzODo1MiIsInBsYWNlbWVudCI6IjV0aCBPdmVyYWxsICgxc3QgQWdlIEdyb3VwKSIsInNwbGl0NWsiOiIxOToyMCIsInNwbGl0MTBrIjoiMzg6NTIifSx7Im5hbWUiOiJKb3JkYW4gVGF5bG9yIiwiYmliIjoiMTEwNSIsImZpbmlzaFRpbWUiOiI0NzowOSIsInBsYWNlbWVudCI6IjYydGggT3ZlcmFsbCIsInNwbGl0NWsiOiIyMzoxNSIsInNwbGl0MTBrIjoiNDc6MDkifV0=";
+
+    document.getElementById("runner-search-form").addEventListener("submit", function(event) {
+      event.preventDefault();
+      const rawQuery = document.getElementById("runner-query").value.trim();
+      const q = rawQuery.toLowerCase();
+      const container = document.getElementById("results-container");
+      const body = document.getElementById("results-body");
+      const heading = document.getElementById("results-heading");
+
+      const runners = JSON.parse(atob(ENCODED_DATA));
+      container.style.display = "block";
+      heading.textContent = "Results for: " + rawQuery;
+
+      const matches = runners.filter(function(r) {
+        return r.name.toLowerCase().includes(q) || r.bib === q;
+      });
+
+      if (matches.length === 0) {
+        body.innerHTML = "<p>No runner found matching <strong>" + rawQuery + "</strong>.</p>";
+        return;
+      }
+
+      const rowsHtml = matches.map(function(r) {
+        return "<tr>" +
+          "<td>" + r.bib + "</td>" +
+          "<td>" + r.name + "</td>" +
+          "<td><strong>" + r.finishTime + "</strong></td>" +
+          "<td>" + r.placement + "</td>" +
+          "<td>" + r.split5k + "</td>" +
+          "<td>" + r.split10k + "</td>" +
+          "</tr>";
+      }).join("");
+
+      body.innerHTML =
+        "<table>" +
+          "<thead>" +
+            "<tr><th>Bib</th><th>Name</th><th>Finish Time</th><th>Placement</th><th>5K Split</th><th>10K Split</th></tr>" +
+          "</thead>" +
+          "<tbody>" + rowsHtml + "</tbody>" +
+        "</table>";
+    });
+  </script>
+
+</body>
+</html>
