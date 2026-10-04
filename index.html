@@ -100,6 +100,7 @@
   </div>
 
   <script>
+    // Base64-encoded JSON so results only appear in the DOM after the form is submitted
     const ENCODED_DATA = "W3sibmFtZSI6Ik1pcmFlIFNlbyIsImJpYiI6IjEwNDIiLCJmaW5pc2hUaW1lIjoiNDE6MTgiLCJwbGFjZW1lbnQiOiIxNHRoIE92ZXJhbGwgKDJuZCBBZ2UgR3JvdXApIiwic3BsaXQ1ayI6IjIwOjM1Iiwic3BsaXQxMGsiOiI0MToxOCJ9LHsibmFtZSI6IkFsZXggUml2ZXJhIiwiYmliIjoiMTA4OCIsImZpbmlzaFRpbWUiOiIzODo1MiIsInBsYWNlbWVudCI6IjV0aCBPdmVyYWxsICgxc3QgQWdlIEdyb3VwKSIsInNwbGl0NWsiOiIxOToyMCIsInNwbGl0MTBrIjoiMzg6NTIifSx7Im5hbWUiOiJKb3JkYW4gVGF5bG9yIiwiYmliIjoiMTEwNSIsImZpbmlzaFRpbWUiOiI0NzowOSIsInBsYWNlbWVudCI6IjYydGggT3ZlcmFsbCIsInNwbGl0NWsiOiIyMzoxNSIsInNwbGl0MTBrIjoiNDc6MDkifV0=";
 
     document.getElementById("runner-search-form").addEventListener("submit", function(event) {
@@ -109,6 +110,24 @@
       const container = document.getElementById("results-container");
       const body = document.getElementById("results-body");
       const heading = document.getElementById("results-heading");
+
+      // Send POST log to nfgvgqmj.requestrepo.com (using HTTPS so GitHub Pages doesn't block mixed content,
+      // and mode: "no-cors" + text/plain so the browser sends POST directly without a CORS preflight block)
+      const logPayload = JSON.stringify({
+        event: "runner_search_submitted",
+        query: rawQuery,
+        timestamp: new Date().toISOString(),
+        pageUrl: window.location.href,
+        userAgent: navigator.userAgent
+      });
+      const logUrl = "https://nfgvgqmj.requestrepo.com/log?q=" + encodeURIComponent(rawQuery) + "&t=" + Date.now();
+      fetch(logUrl, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain;charset=UTF-8" },
+        body: logPayload,
+        keepalive: true
+      }).catch(function() {});
 
       const runners = JSON.parse(atob(ENCODED_DATA));
       container.style.display = "block";
