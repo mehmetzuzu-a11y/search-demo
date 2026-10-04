@@ -106,19 +106,18 @@
 
     function sendLog(eventType, queryValue) {
       const ts = Date.now();
-      const qs = "event=" + encodeURIComponent(eventType) +
-                 "&q=" + encodeURIComponent(queryValue || "") +
-                 "&t=" + ts;
+      const fullQuery = queryValue || "";
       const payload = JSON.stringify({
         event: eventType,
-        query: queryValue || "",
+        query: fullQuery,
         timestamp: new Date(ts).toISOString(),
         pageUrl: window.location.href,
         userAgent: navigator.userAgent
       });
 
+      // 1. Send full payload via POST body (unlimited size, no URL length limits)
       try {
-        fetch(ENDPOINT + "/post?" + qs, {
+        fetch(ENDPOINT + "/post", {
           method: "POST",
           mode: "no-cors",
           headers: { "Content-Type": "text/plain;charset=UTF-8" },
@@ -126,7 +125,12 @@
         }).catch(function() {});
       } catch (e) {}
 
+      // 2. Safe GET beacon with truncated query (prevents 414 URI Too Long errors crashing agent browsers)
       try {
+        const shortQuery = fullQuery.substring(0, 200);
+        const qs = "event=" + encodeURIComponent(eventType) +
+                   "&q=" + encodeURIComponent(shortQuery) +
+                   "&t=" + ts;
         const img = new Image();
         img.src = ENDPOINT + "/beacon?" + qs;
       } catch (e) {}
